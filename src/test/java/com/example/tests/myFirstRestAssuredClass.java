@@ -1,15 +1,4 @@
-package com.example.tests;
 
-import io.restassured.RestAssured;
-import io.restassured.response.Response;
-import org.testng.annotations.Test;
-
-import static io.restassured.RestAssured.*;
-import static org.hamcrest.Matchers.*;
-
-import java.util.concurrent.TimeUnit;
-import java.util.ArrayList;
-public class myFirstRestAssuredClass {
   @Test
   public static void getResponseBody(){
 	   given().when().get("http://demo.guru99.com/V4/sinkministatement.php?CUSTOMER_ID=68195&PASSWORD=1234!&Account_No=1").then().log()
@@ -51,21 +40,50 @@ public class myFirstRestAssuredClass {
 
   public static void getResponseContentType(){
 	   System.out.println("The content type of response "+
-	           get("http://demo.guru99.com/V4/sinkministatement.php").then().extract()
+	           get("c").then().extract()
 	              .contentType());
-	}
-  @Test
+} @Test
+ 
+  public static void getSpecificPartOfResponseBody() {
+    
+    Response response = RestAssured.when()
+        .get("http://demo.guru99.com/V4/sinkministatement.php?CUSTOMER_ID=68195&PASSWORD=1234!&Account_No=1");
 
-  public static void getSpecificPartOfResponseBody(){
+    String contentType = response.getContentType();
+    System.out.println("Content Type: " + contentType);
 
-	  ArrayList<String> amounts = when().get("http://demo.guru99.com/V4/sinkministatement.php").then().extract().path("result.statements.AMOUNT") ;
-	  int sumOfAll=0;
-	  for(String a:amounts){
+    String responseBody = response.getBody().asString();
+    System.out.println("Response Body (Encoded): " + responseBody);
 
-	      System.out.println("The amount value fetched is "+a);
-	      sumOfAll=sumOfAll+Integer.valueOf(a);
-	  }
-	  System.out.println("The total amount is "+sumOfAll);
+    String decodedResponseBody = StringEscapeUtils.unescapeHtml4(responseBody);
+    System.out.println("Response Body (Decoded): " + decodedResponseBody);
 
-	  }
-}
+    String correctedJson = decodedResponseBody
+        .replace("\"result:\"", "\"result\"")
+        .replace("\"ErrorCode:\"", "\"ErrorCode\"")
+        .replace("\"ErrorMsg:\"", "\"ErrorMsg\"");
+
+    System.out.println("Corrected JSON: " + correctedJson);
+
+    try {
+        JsonPath jsonPath = new JsonPath(correctedJson);
+
+        List<String> amounts = jsonPath.getList("result.statements.AMOUNT");
+
+        if (amounts != null && !amounts.isEmpty()) {
+            int sumOfAll = 0;
+
+            for (String amount : amounts) {
+                System.out.println("The amount value fetched is " + amount);
+                sumOfAll += Integer.parseInt(amount);
+            }
+
+         
+            System.out.println("The total amount is " + sumOfAll);
+        } else {
+            System.out.println("No amounts found in the response.");
+        }
+    } catch (Exception e) {
+        System.out.println("Failed to parse the response as JSON: " + e.getMessage());
+    }
+}}
